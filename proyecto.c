@@ -16,6 +16,10 @@ static int flag_bit = 0;
 static int flag_mensaje = 0;
 static int flag_time_out = 0;
 
+static int bits_CO2[8];
+static int bits_TVOC[8];
+// static int bits_CRC[8];
+
 int contador = 0;
 
 enum Estados {
@@ -56,6 +60,46 @@ int comprobar_tiempo (fsm_t* this){
 	return flag_time_out;
 }
 
+static void init_air_quality (fsm_t* this){
+
+	printf("Enviando 'init_air_quality' al sensor\n");
+	fflush(stdout);
+	// Preguntar que es eso
+}
+
+static void measure_air_quality (fsm_t* this){
+	
+	printf("Enviando petición al sensor\n");
+	printf("Medida CO2:\n");
+	scanf("%d %d %d %d %d %d %d %d", &bits_CO2[0],&bits_CO2[1], &bits_CO2[2], &bits_CO2[3], &bits_CO2[4], &bits_CO2[5], &bits_CO2[6], &bits_CO2[7]);
+	fflush(stdout);
+/*
+	En caso de CRC ponerlo aqui como mas informacion
+*/
+}
+
+static void power_off (fsm_t* this){
+/*
+	Apagar la máquina
+*/
+}
+
+static void mostrar_resultados (fsm_t* this){
+
+	printf("Enviando ACK de TVOC al sensor\n");
+	printf("Los resultados obtenidos son:\n CO2: %d \n TVOC: %d \n", /*CO2 y TVOC en bonito*/);
+
+}
+
+static void ack (fsm_t* this){
+	
+	printf("Enviando ACK de CO2 al sensor\n");
+	printf("Medida TVOC:\n");
+	scanf("%d %d %d %d %d %d %d %d", &bits_TVOC[0],&bits_TVOC[1], &bits_TVOC[2], &bits_TVOC[3], &bits_TVOC[4], &bits_TVOC[5], &bits_TVOC[6], &bits_TVOC[7]);
+	fflush(stdout);
+	
+}
+
 static void button (void) {	
 /*
 	Depende del tipo de botón: 
@@ -83,6 +127,7 @@ static void mensaje_recibido (void){
 	Cuando el contador de paquetes es el número de paquetes que necesitamos enviar, return 1;
 */
 }
+
 
 
 int main () {
