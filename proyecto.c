@@ -56,18 +56,34 @@ int comprobar_tiempo (fsm_t* this){
 	return flag_time_out;
 }
 
-static void button (void) {
-	
+static void button (void) {	
 /*
-
-Depende del tipo de botón: 
-	Tipo boli:
-		-Si está apretado encendido, si no, apagado.
-	Tipo linterna:
-		-Apretar cambia de estado.
+	Depende del tipo de botón: 
+		Tipo boli:
+			-Si está apretado encendido, si no, apagado.
+		Tipo linterna:
+			-Apretar cambia de estado.
 */
-
 }
+
+static void tiempo (void){
+/*
+	Si ha sobrepasado el timeout return 1, mientras, return 0
+*/
+}
+
+static void bits_recibidos (void){
+/*
+	Recibe un bit y lo suma a un contador, cuando llega a 8 devuelve un 1 y suma 1 al contador de paquetes.
+*/
+}
+
+static void mensaje_recibido (void){
+/*
+	Cuando el contador de paquetes es el número de paquetes que necesitamos enviar, return 1;
+*/
+}
+
 
 int main () {
 
