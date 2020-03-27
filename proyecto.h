@@ -25,7 +25,9 @@
 #define FLAG_BIT 0x04
 #define FLAG_MENSAJE 0x08
 #define FLAG_TIME_OUT 0x10
-#define REFRESH_TIME 30000
+#define FLAG_TIME_OUT_MEDIDA 0x20
+#define REFRESH_TIME 10000
+#define TIMEOUT_TIME 3000
 #define MAX_NUM_CHARACTERS 4
 
 enum Boton {
@@ -35,7 +37,8 @@ enum Boton {
 
 typedef struct{
 	int fase;
-	tmr_t* tmr;
+	tmr_t* tmr_timeout;
+	tmr_t* tmr_timeout_medida;
 	int medidaCO2;
 	int medidaTVOC;
 }TipoProyecto;

@@ -19,7 +19,6 @@ static int flag_time_out = 0;
 //static int bits_TVOC;
 
 static pthread_mutex_t mutex;
-static tmr_t tmr_1;
 static int num_bits_recibidos;
 
 // static int bits_CRC[8];
@@ -103,13 +102,22 @@ int comprobar_8_bits_recibidos (fsm_t* this){
 	return result;
 }
 
-int comprobar_tiempo (fsm_t* this){
+int comprobar_timeout (fsm_t* this){
 
 	pthread_mutex_lock (&mutex);
 	int result = 0;
 	result = (flags & FLAG_TIME_OUT);
 	pthread_mutex_unlock (&mutex);
 	return result;
+}
+
+int comprobar_timeout_medida (fsm_t* this){
+
+	pthread_mutex_lock (&mutex);
+	int result = 0;
+	result = (flags & FLAG_TIME_OUT_MEDIDA);
+	pthread_mutex_unlock (&mutex);
+	return result
 }
 
 // Acciones de la máquina de estados
@@ -131,20 +139,20 @@ static void measure_air_quality (fsm_t* this){
 
 	TipoProyecto *p_cait;
 	p_cait = (TipoProyecto*)(this->user_data);
-	tmr_startms((tmr_t*)(p_cait->tmr), REFRESH_TIME);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout), REFRESH_TIME);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout_medida), TIMEOUT_TIME);
 
 	printf("Enviando petición al sensor\n");
 	printf(">Insertar medidas CO2 \n");
 	fflush(stdout);
 
 	scanf("%d", &(p_cait->medidaCO2));
-	printf("Medida CO2: %d \n", p_cait->medidaCO2);	
-	fflush(stdout);
 
 	bits_recibidos();
 
 	pthread_mutex_lock (&mutex);
 	flags &= (~FLAG_TIME_OUT);
+	flags &= (~FLAG_TIME_OUT_MEDIDA);
 	pthread_mutex_unlock (&mutex);
 /*
 	En caso de CRC ponerlo aqui como mas informacion
@@ -180,6 +188,7 @@ static void ack (fsm_t* this){
 
 	TipoProyecto *p_cait;
 	p_cait = (TipoProyecto*)(this->user_data);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout_medida), TIMEOUT_TIME);
 
 	pthread_mutex_lock (&mutex);
 	flags &= (~FLAG_BIT);
@@ -190,18 +199,6 @@ static void ack (fsm_t* this){
 	fflush(stdout);
 
 	scanf("%d", &(p_cait->medidaTVOC));
-
-	if(flags & FLAG_TIME_OUT){
-		printf("TIMEOUT\n");
-		num_bits_recibidos = 0;
-		pthread_mutex_lock (&mutex);
-		flags &= (~FLAG_MENSAJE);
-		pthread_mutex_unlock (&mutex);
-		return;
-	}
-
-	printf("Medida CO2: %d \n", p_cait->medidaTVOC);
-	fflush(stdout);
 	
 	bits_recibidos();
 
@@ -277,13 +274,22 @@ static void tiempo (union sigval value){
 */
 }
 
+static void tiempo_medida (union sigval value){
+
+	pthread_mutex_lock (&mutex);
+	flags |= (FLAG_TIME_OUT_MEDIDA);
+	pthread_mutex_unlock (&mutex);
+	num_bits_recibidos = 0;
+	printf("TIMEOUT\n");
+}
+
 int initialize(TipoProyecto *p_cait) {
 
 	p_cait->fase = APAGADO;
-	p_cait->tmr = tmr_new (tiempo);
+	p_cait->tmr_timeout = tmr_new (tiempo);
+	p_cait->tmr_timeout_medida = tmr_new (tiempo_medida);
 	p_cait->medidaCO2 = 0;
 	p_cait->medidaTVOC = 0;
-//	tmr_startms((tmr_t*)(p_tmr_1), 5000);
 	pthread_mutex_init(&mutex, NULL);
 
 
@@ -297,11 +303,11 @@ int main () {
 
 	fsm_trans_t maquina[] = {
 		{ SLEEP, comprobar_button_on, MEASURE, init_air_quality },
-		{ MEASURE, comprobar_tiempo, ACK_SENDER, measure_air_quality },
+		{ MEASURE, comprobar_timeout, ACK_SENDER, measure_air_quality },
 		{ MEASURE, comprobar_button_off, SLEEP, power_off },
 		{ ACK_SENDER, comprobar_mensaje_recibido, MEASURE, mostrar_resultados },
+		{ ACK_SENDER, comprobar_timeout_medida, ACK_SENDER, measure_air_quality},
 		{ ACK_SENDER, comprobar_8_bits_recibidos, ACK_SENDER, ack },
-		{ ACK_SENDER, comprobar_tiempo, ACK_SENDER, measure_air_quality },
 		{ ACK_SENDER, comprobar_button_off, SLEEP, power_off },
 		{-1, NULL, -1, NULL },
 	};
