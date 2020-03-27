@@ -25,7 +25,7 @@
 #define FLAG_BIT 0x04
 #define FLAG_MENSAJE 0x08
 #define FLAG_TIME_OUT 0x10
-#define REFRESH_TIME 10000
+#define REFRESH_TIME 30000
 #define MAX_NUM_CHARACTERS 4
 
 enum Boton {

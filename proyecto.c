@@ -121,6 +121,7 @@ static void init_air_quality (fsm_t* this){
 	// Preguntar que es eso
 	pthread_mutex_lock (&mutex);
 	flags &= (~FLAG_BUTTON_ON);
+	flags |= (FLAG_TIME_OUT);
 	printf("Iniciando... \n");
 	fflush(stdout);
 	pthread_mutex_unlock (&mutex);
@@ -196,7 +197,7 @@ static void ack (fsm_t* this){
 		pthread_mutex_lock (&mutex);
 		flags &= (~FLAG_MENSAJE);
 		pthread_mutex_unlock (&mutex);
-		break;
+		return;
 	}
 
 	printf("Medida CO2: %d \n", p_cait->medidaTVOC);
@@ -246,12 +247,14 @@ void button (void) {
 		if (cait.fase == ENCENDIDO){
 			pthread_mutex_lock (&mutex);
 			flags |= (FLAG_BUTTON_OFF);
+			cait.fase = APAGADO;
 			pthread_mutex_unlock (&mutex);
 		}
 		else if (cait.fase == APAGADO){
 		//	fflush(stdout);
 			pthread_mutex_lock (&mutex);
 			flags |= (FLAG_BUTTON_ON);
+			cait.fase = ENCENDIDO;
 			pthread_mutex_unlock (&mutex);
 		}
 	}	
@@ -283,7 +286,6 @@ int initialize(TipoProyecto *p_cait) {
 //	tmr_startms((tmr_t*)(p_tmr_1), 5000);
 	pthread_mutex_init(&mutex, NULL);
 
-	flags |= (FLAG_TIME_OUT);
 
 	printf("\nSystem init complete!\n");
 	fflush(stdout);
