@@ -22,10 +22,10 @@
 #define CLK_MS 5
 #define FLAG_BUTTON_ON 0x01
 #define FLAG_BUTTON_OFF 0x02
-#define FLAG_BIT 0x03
-#define FLAG_MENSAJE 0x04
-#define FLAG_TIME_OUT 0x05
-#define REFRESH_TIME 30000
+#define FLAG_BIT 0x04
+#define FLAG_MENSAJE 0x08
+#define FLAG_TIME_OUT 0x10
+#define REFRESH_TIME 10000
 #define MAX_NUM_CHARACTERS 4
 
 enum Boton {
@@ -36,8 +36,8 @@ enum Boton {
 typedef struct{
 	int fase;
 	tmr_t* tmr;
-	char medida_CO2;
-	char medida_TVOC;
+	int medidaCO2;
+	int medidaTVOC;
 }TipoProyecto;
 
 
