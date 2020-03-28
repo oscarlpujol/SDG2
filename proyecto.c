@@ -28,6 +28,10 @@ int contador = 0;
 enum Estados {
 	SLEEP,
 	MEASURE,
+	MENSAJE1,
+	ACK1,
+	MENSAJE2,
+	ACK2,
 	ACK_SENDER,
 } ;
 
@@ -82,14 +86,6 @@ int comprobar_button_off (fsm_t* this){
 	int result = 0;
 	result = (flags & FLAG_BUTTON_OFF);
 	pthread_mutex_unlock (&mutex);
-	return result;}
-
-int comprobar_mensaje_recibido (fsm_t* this){
-
-	pthread_mutex_lock (&mutex);
-	int result = 0;
-	result = (flags & FLAG_MENSAJE);
-	pthread_mutex_unlock (&mutex);
 	return result;
 }
 
@@ -106,7 +102,7 @@ int comprobar_timeout (fsm_t* this){
 
 	pthread_mutex_lock (&mutex);
 	int result = 0;
-	result = (flags & FLAG_TIME_OUT);
+	result = (flags & FLAG_TIMEOUT_REFRESH);
 	pthread_mutex_unlock (&mutex);
 	return result;
 }
@@ -115,9 +111,17 @@ int comprobar_timeout_medida (fsm_t* this){
 
 	pthread_mutex_lock (&mutex);
 	int result = 0;
-	result = (flags & FLAG_TIME_OUT_MEDIDA);
+	result = (flags & FLAG_TIMEOUT_MEDIDA);
 	pthread_mutex_unlock (&mutex);
-	return result
+	return result;
+}
+
+int comprobar_no_timeout_medida (fsm_t* this){
+	pthread_mutex_lock (&mutex);
+	int result = 0;
+	result = (flags & FLAG_NO_TIMEOUT_MEDIDA);
+	pthread_mutex_unlock (&mutex);
+	return result;
 }
 
 // Acciones de la máquina de estados
@@ -126,34 +130,55 @@ static void init_air_quality (fsm_t* this){
 
 	printf("Enviando 'init_air_quality' al sensor\n");
 	fflush(stdout);
-	// Preguntar que es eso
+	printf(">Iniciando... \n");
+	fflush(stdout);
+
 	pthread_mutex_lock (&mutex);
 	flags &= (~FLAG_BUTTON_ON);
-	flags |= (FLAG_TIME_OUT);
-	printf("Iniciando... \n");
-	fflush(stdout);
+	flags |= (FLAG_TIMEOUT_REFRESH);
 	pthread_mutex_unlock (&mutex);
 }
 
-static void measure_air_quality (fsm_t* this){
+static void peticionCO2 (fsm_t* this){
 
 	TipoProyecto *p_cait;
 	p_cait = (TipoProyecto*)(this->user_data);
-	tmr_startms((tmr_t*)(p_cait->tmr_timeout), REFRESH_TIME);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout_refresh), REFRESH_TIME);
 	tmr_startms((tmr_t*)(p_cait->tmr_timeout_medida), TIMEOUT_TIME);
 
 	printf("Enviando petición al sensor\n");
 	printf(">Insertar medidas CO2 \n");
 	fflush(stdout);
 
+	pthread_mutex_lock (&mutex);
+	flags |= (FLAG_NO_TIMEOUT_MEDIDA);
+	flags &= (~FLAG_TIMEOUT_REFRESH);
+	pthread_mutex_unlock (&mutex);
+
+	printf(">");
 	scanf("%d", &(p_cait->medidaCO2));
 
-	bits_recibidos();
+/*
+	En caso de CRC ponerlo aqui como mas informacion
+*/
+}
+
+static void peticionTVOC (fsm_t* this){
+
+	TipoProyecto *p_cait;
+	p_cait = (TipoProyecto*)(this->user_data);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout_medida), TIMEOUT_TIME);
+
+	printf(">Insertar medidas TVOC\n");
+	fflush(stdout);
 
 	pthread_mutex_lock (&mutex);
-	flags &= (~FLAG_TIME_OUT);
-	flags &= (~FLAG_TIME_OUT_MEDIDA);
+	flags &= (~FLAG_BIT);
 	pthread_mutex_unlock (&mutex);
+
+	printf(">");
+	scanf("%d", &(p_cait->medidaTVOC));
+
 /*
 	En caso de CRC ponerlo aqui como mas informacion
 */
@@ -166,7 +191,7 @@ static void power_off (fsm_t* this){
 //	exit(0);
 	pthread_mutex_lock (&mutex);
 	flags &= (~FLAG_BUTTON_OFF);
-	printf("Apagando... \n");
+	printf(">Apagando... \n");
 	fflush(stdout);
 	pthread_mutex_unlock (&mutex);
 }
@@ -175,67 +200,56 @@ static void mostrar_resultados (fsm_t* this){
 
 	TipoProyecto *p_cait;
 	p_cait = (TipoProyecto*)(this->user_data);
+	tmr_startms(p_cait->tmr_timeout_medida, 10*REFRESH_TIME);
 
-	printf("Enviando ACK de TVOC al sensor\n");
 	printf("Los resultados obtenidos son:\n CO2: %d ppm\n TVOC: %d ppb\n", (p_cait->medidaCO2),(p_cait->medidaTVOC));
 
 	pthread_mutex_lock (&mutex);
-	flags &= (~FLAG_MENSAJE);
+	flags &= (~FLAG_BIT);
 	pthread_mutex_unlock (&mutex);
 }
 
-static void ack (fsm_t* this){
+static void ackCO2 (fsm_t* this){
 
 	TipoProyecto *p_cait;
 	p_cait = (TipoProyecto*)(this->user_data);
-	tmr_startms((tmr_t*)(p_cait->tmr_timeout_medida), TIMEOUT_TIME);
-
-	pthread_mutex_lock (&mutex);
-	flags &= (~FLAG_BIT);
-	pthread_mutex_unlock (&mutex);
 
 	printf("Enviando ACK de CO2 al sensor\n"); // Si no se han recibido los 8 bits (debería saberse con bits_recibidos) debería mostrar otro mensaje
-	printf(">Insertar medidas TVOC\n");
-	fflush(stdout);
-
-	scanf("%d", &(p_cait->medidaTVOC));
 	
 	bits_recibidos();
 
-	pthread_mutex_lock (&mutex);
-	flags &= (~FLAG_BIT);
-	pthread_mutex_unlock (&mutex);	
+}
 
+static void ackTVOC (fsm_t* this){
+
+	TipoProyecto *p_cait;
+	p_cait = (TipoProyecto*)(this->user_data);
+
+	printf("Enviando ACK de TVOC al sensor\n"); // Si no se han recibido los 8 bits (debería saberse con bits_recibidos) debería mostrar otro mensaje
+	
+	bits_recibidos();
+
+}
+
+static void preparacion_reenvio (fsm_t* this){
+
+	TipoProyecto *p_cait;
+	p_cait = (TipoProyecto*)(this->user_data);
+
+	printf("TIMEOUT, se requiere nueva medida\n");
+	fflush(stdout);
+
+	pthread_mutex_lock (&mutex);
+	flags &= (~FLAG_TIMEOUT_MEDIDA);
+	pthread_mutex_unlock (&mutex);
 }
 
 void bits_recibidos (void){
 	pthread_mutex_lock (&mutex);
-	num_bits_recibidos++;
+	flags |= (FLAG_BIT);
 	pthread_mutex_unlock (&mutex);
-	if(num_bits_recibidos < 2){
-		pthread_mutex_lock (&mutex);
-		flags |= (FLAG_BIT);
-		pthread_mutex_unlock (&mutex);
-	}
-	else{
-		mensaje_recibido();
-	}
-/*
-	Debe ser capaz de ver si se han recibido o no los 8 bits correspondientes. Activa flag FLAG_BIT
-*/
 }
 
-void mensaje_recibido (void){
-	pthread_mutex_lock (&mutex);
-	if(num_bits_recibidos == 2){
-		flags |= (FLAG_MENSAJE);
-		num_bits_recibidos = 0;
-	}
-	pthread_mutex_unlock (&mutex);
-/*
-	Debe ser capaz de activar el flag de FLAG_MENSAJE
-*/
-}
 
 // Atención a timer e interrupción
 
@@ -264,10 +278,10 @@ void button (void) {
 */
 }
 
-static void tiempo (union sigval value){
+static void tiempo_refresco (union sigval value){
 
 	pthread_mutex_lock (&mutex);
-	flags |= (FLAG_TIME_OUT);
+	flags |= (FLAG_TIMEOUT_REFRESH);
 	pthread_mutex_unlock (&mutex);
 /*
 	Si ha sobrepasado el timeout cambia flags
@@ -277,21 +291,25 @@ static void tiempo (union sigval value){
 static void tiempo_medida (union sigval value){
 
 	pthread_mutex_lock (&mutex);
-	flags |= (FLAG_TIME_OUT_MEDIDA);
+	flags |= (FLAG_TIMEOUT_MEDIDA);
+	flags |= (FLAG_TIMEOUT_REFRESH);
+	flags &= (~FLAG_NO_TIMEOUT_MEDIDA);
 	pthread_mutex_unlock (&mutex);
-	num_bits_recibidos = 0;
-	printf("TIMEOUT\n");
 }
 
 int initialize(TipoProyecto *p_cait) {
 
 	p_cait->fase = APAGADO;
-	p_cait->tmr_timeout = tmr_new (tiempo);
+	p_cait->tmr_timeout_refresh = tmr_new (tiempo_refresco);
 	p_cait->tmr_timeout_medida = tmr_new (tiempo_medida);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout_medida), 10*REFRESH_TIME);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout_refresh),10*REFRESH_TIME);
 	p_cait->medidaCO2 = 0;
 	p_cait->medidaTVOC = 0;
+
 	pthread_mutex_init(&mutex, NULL);
 
+	flags |= (FLAG_NO_TIMEOUT_MEDIDA);
 
 	printf("\nSystem init complete!\n");
 	fflush(stdout);
@@ -303,12 +321,14 @@ int main () {
 
 	fsm_trans_t maquina[] = {
 		{ SLEEP, comprobar_button_on, MEASURE, init_air_quality },
-		{ MEASURE, comprobar_timeout, ACK_SENDER, measure_air_quality },
-		{ MEASURE, comprobar_button_off, SLEEP, power_off },
-		{ ACK_SENDER, comprobar_mensaje_recibido, MEASURE, mostrar_resultados },
-		{ ACK_SENDER, comprobar_timeout_medida, ACK_SENDER, measure_air_quality},
-		{ ACK_SENDER, comprobar_8_bits_recibidos, ACK_SENDER, ack },
-		{ ACK_SENDER, comprobar_button_off, SLEEP, power_off },
+		{ MEASURE, comprobar_button_off, SLEEP, power_off},
+		{ MEASURE, comprobar_timeout, MENSAJE1, peticionCO2},
+		{ MENSAJE1, comprobar_timeout_medida, MEASURE, preparacion_reenvio},
+		{ MENSAJE1, comprobar_no_timeout_medida, ACK1, ackCO2},
+		{ ACK1, comprobar_8_bits_recibidos, MENSAJE2, peticionTVOC},
+		{ MENSAJE2, comprobar_no_timeout_medida, ACK2, ackTVOC},
+		{ MENSAJE2, comprobar_timeout_medida, MEASURE, preparacion_reenvio},
+		{ ACK2, comprobar_8_bits_recibidos, MEASURE ,mostrar_resultados},
 		{-1, NULL, -1, NULL },
 	};
 
