@@ -32,7 +32,6 @@ enum Estados {
 	ACK1,
 	MENSAJE2,
 	ACK2,
-	ACK_SENDER,
 } ;
 
 void delay_until (unsigned int next, unsigned int now) {
