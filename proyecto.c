@@ -121,7 +121,6 @@ static void init_air_quality (fsm_t* this){
 
 	pthread_mutex_lock (&mutex);
 	flags &= (~FLAG_BUTTON_ON);
-	flags |= (FLAG_TIMEOUT_REFRESH);
 	pthread_mutex_unlock (&mutex);
 }
 
@@ -269,7 +268,7 @@ int initialize(TipoProyecto *p_cait) {
 	p_cait->tmr_timeout_refresh = tmr_new (tiempo_refresco);
 	p_cait->tmr_timeout_medida = tmr_new (tiempo_medida);
 	tmr_startms((tmr_t*)(p_cait->tmr_timeout_medida), 10*REFRESH_TIME);
-	tmr_startms((tmr_t*)(p_cait->tmr_timeout_refresh),10*REFRESH_TIME);
+	tmr_startms((tmr_t*)(p_cait->tmr_timeout_refresh),REFRESH_TIME);
 	p_cait->medidaCO2 = 0;
 	p_cait->medidaTVOC = 0;
 
