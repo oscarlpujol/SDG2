@@ -11,6 +11,8 @@ static int flags = 0;
 static pthread_mutex_t mutex;
 static int num_bits_recibidos;
 
+void bits_recibidos(void);
+
 enum Estados {
 	SLEEP,
 	MEASURE,
