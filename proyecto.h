@@ -14,7 +14,6 @@
 #include <math.h>
 #include <termios.h>
 #include <fcntl.h>
-// #include <wiringPi.h>
 
 #include "fsm.h"
 #include "tmr.h"
@@ -45,4 +44,4 @@ typedef struct{
 
 
 
-#endif /* _TECLADO_TL04_H_ */
+#endif /* _PROYECTO_H */

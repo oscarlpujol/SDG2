@@ -7,21 +7,9 @@ Cuando se le pide algo el sensor empieza por >
 
 static TipoProyecto cait;
 static int flags = 0;
-/*
-static int flag_button_on = 0;
-static int flag_button_off = 0;
-static int flag_bit = 0;
-static int flag_mensaje = 0;
-static int flag_time_out = 0;
-*/
-
-//static int bits_CO2;
-//static int bits_TVOC;
 
 static pthread_mutex_t mutex;
 static int num_bits_recibidos;
-
-// static int bits_CRC[8];
 
 int contador = 0;
 
@@ -35,8 +23,7 @@ enum Estados {
 } ;
 
 void delay_until (unsigned int next, unsigned int now) {
-	//printf("esperando %d \n",next - now);
-	//fflush(stdout);
+
 	if (next > now) {
 		usleep((next-now)*1000);
 	}
@@ -156,10 +143,6 @@ static void peticionCO2 (fsm_t* this){
 
 	printf(">");
 	scanf("%d", &(p_cait->medidaCO2));
-
-/*
-	En caso de CRC ponerlo aqui como mas informacion
-*/
 }
 
 static void peticionTVOC (fsm_t* this){
@@ -177,17 +160,11 @@ static void peticionTVOC (fsm_t* this){
 
 	printf(">");
 	scanf("%d", &(p_cait->medidaTVOC));
-
-/*
-	En caso de CRC ponerlo aqui como mas informacion
-*/
 }
 
 static void power_off (fsm_t* this){
 
 	printf("Apagar el sensor\n");
-//	printf("Apagando la máquina\n");
-//	exit(0);
 	pthread_mutex_lock (&mutex);
 	flags &= (~FLAG_BUTTON_OFF);
 	printf(">Apagando... \n");
@@ -213,7 +190,7 @@ static void ackCO2 (fsm_t* this){
 	TipoProyecto *p_cait;
 	p_cait = (TipoProyecto*)(this->user_data);
 
-	printf("Enviando ACK de CO2 al sensor\n"); // Si no se han recibido los 8 bits (debería saberse con bits_recibidos) debería mostrar otro mensaje
+	printf("Enviando ACK de CO2 al sensor\n");
 	
 	bits_recibidos();
 
@@ -224,7 +201,7 @@ static void ackTVOC (fsm_t* this){
 	TipoProyecto *p_cait;
 	p_cait = (TipoProyecto*)(this->user_data);
 
-	printf("Enviando ACK de TVOC al sensor\n"); // Si no se han recibido los 8 bits (debería saberse con bits_recibidos) debería mostrar otro mensaje
+	printf("Enviando ACK de TVOC al sensor\n");
 	
 	bits_recibidos();
 
@@ -268,13 +245,6 @@ void button (void) {
 			pthread_mutex_unlock (&mutex);
 		}
 	}	
-/*
-	Depende del tipo de botón: 
-		Tipo boli:
-			-Si está apretado encendido, si no, apagado.
-		Tipo linterna:
-			-Apretar cambia de estado.
-*/
 }
 
 static void tiempo_refresco (union sigval value){
@@ -282,9 +252,6 @@ static void tiempo_refresco (union sigval value){
 	pthread_mutex_lock (&mutex);
 	flags |= (FLAG_TIMEOUT_REFRESH);
 	pthread_mutex_unlock (&mutex);
-/*
-	Si ha sobrepasado el timeout cambia flags
-*/
 }
 
 static void tiempo_medida (union sigval value){
