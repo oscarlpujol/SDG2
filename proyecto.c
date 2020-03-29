@@ -11,8 +11,6 @@ static int flags = 0;
 static pthread_mutex_t mutex;
 static int num_bits_recibidos;
 
-int contador = 0;
-
 enum Estados {
 	SLEEP,
 	MEASURE,
