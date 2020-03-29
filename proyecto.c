@@ -277,7 +277,7 @@ int initialize(TipoProyecto *p_cait) {
 
 	flags |= (FLAG_NO_TIMEOUT_MEDIDA);
 
-	printf("\nSystem init complete!\n");
+	printf("\nSystem init complete!\n\n");
 	fflush(stdout);
 
 	return 0;
